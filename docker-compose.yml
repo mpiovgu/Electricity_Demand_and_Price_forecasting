@@ -1,0 +1,49 @@
+# 电力价格风控模型 —— 监控栈
+# 启动： docker compose up -d
+# 访问： Prometheus http://localhost:9090  |  Grafana http://localhost:3000 (admin/admin)
+#
+# 默认假设「风控模型服务」已在本机(host)运行于 127.0.0.1:8000，
+# Prometheus 通过 host.docker.internal:8000 抓取（Docker Desktop Windows/Mac 原生支持）。
+#
+# 若希望把风控服务也容器化一起拉起，取消下方 risk-model 段落的注释，
+# 并把 prometheus.yml 的 target 改为 ['risk-model:8000']（同网络内可用服务名）。
+# （Linux 下 host.docker.internal 需为 prometheus 服务加 extra_hosts: ["host.docker.internal:host-gateway"]）
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: risk-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+    networks: [risk]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: risk-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks: [risk]
+
+  # risk-model:
+  #   build: .
+  #   container_name: risk-model
+  #   ports:
+  #     - "8000:8000"
+  #   restart: unless-stopped
+  #   networks: [risk]
+
+networks:
+  risk:
+    driver: bridge

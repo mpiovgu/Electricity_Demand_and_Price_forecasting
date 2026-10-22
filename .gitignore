@@ -1,0 +1,11 @@
+# ===== 运行时 / 临时文件 =====
+_train.txt
+nul
+*.log
+artifacts/predictions.db
+artifacts/server.log
+
+# ===== Python =====
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

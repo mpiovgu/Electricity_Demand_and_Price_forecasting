@@ -1,0 +1,76 @@
+{
+  "model_type": "hist_gradient_boosting",
+  "target": "price actual > P90 (电价尖峰风险事件)",
+  "price_threshold": 75.15,
+  "threshold": 0.5499,
+  "quantile": 0.9,
+  "features": [
+    "total_load_forecast",
+    "price_day_ahead",
+    "forecast_solar",
+    "forecast_wind_onshore",
+    "total_load_actual_prev",
+    "price_actual_prev",
+    "price_actual_prev2",
+    "load_forecast_error",
+    "price_actual_diff",
+    "renewable_forecast_share",
+    "price_forecast_minus_actual_prev",
+    "temp",
+    "humidity",
+    "wind_speed",
+    "pressure",
+    "clouds_all",
+    "rain_1h",
+    "temp_sq",
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "month",
+    "is_weekend"
+  ],
+  "metrics": {
+    "auc": 0.9834144439300176,
+    "precision": 0.8653344917463076,
+    "recall": 0.8571428571428571,
+    "f1": 0.8612191958495461,
+    "confusion_matrix": [
+      [
+        5689,
+        155
+      ],
+      [
+        166,
+        996
+      ]
+    ],
+    "best_threshold": 0.5499,
+    "test_n": 7006,
+    "test_positive_rate": 0.16585783614045105
+  },
+  "trained_at": "2026-10-22T11:37:56.179873",
+  "params": {
+    "categorical_features": "from_dtype",
+    "class_weight": null,
+    "early_stopping": "auto",
+    "interaction_cst": null,
+    "l2_regularization": 1.0,
+    "learning_rate": 0.05,
+    "loss": "log_loss",
+    "max_bins": 255,
+    "max_depth": 5,
+    "max_features": 1.0,
+    "max_iter": 300,
+    "max_leaf_nodes": 31,
+    "min_samples_leaf": 20,
+    "monotonic_cst": null,
+    "n_iter_no_change": 10,
+    "random_state": 42,
+    "scoring": "loss",
+    "tol": 1e-07,
+    "validation_fraction": 0.1,
+    "verbose": 0,
+    "warm_start": false
+  }
+}

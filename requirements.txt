@@ -1,0 +1,12 @@
+pandas>=1.5
+numpy>=1.21
+scikit-learn>=1.0
+# 注：原方案使用 XGBoost；本环境缺少 xgboost 且磁盘已满无法安装，
+# 已用 sklearn.HistGradientBoostingClassifier（梯度提升树，等价替代）实现。
+# 如需换回 XGBoost，安装 xgboost 后将 train.py / model_wrapper.py 改回即可。
+# xgboost>=1.7
+fastapi>=0.95
+uvicorn[standard]>=0.21
+pydantic>=1.10
+prometheus-client>=0.16
+joblib>=1.1  # 随 scikit-learn 自带

@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # 风控模型服务。若服务跑在宿主机（非 docker 内），用 host.docker.internal；
+  # 若随 docker-compose 一起以容器方式运行，则把目标改为 ['risk-model:8000']。
+  - job_name: risk-model
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['host.docker.internal:8000']
+        labels:
+          env: local
