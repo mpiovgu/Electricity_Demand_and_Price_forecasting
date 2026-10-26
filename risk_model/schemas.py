@@ -59,3 +59,9 @@ class DriftResponse(BaseModel):
     status: str          # ok | warn | alert
     n_samples: int
     items: List[DriftItem]
+
+
+class SessionResponse(BaseModel):
+    """建会话接口的返回：服务端生成 session_id，必须回传给客户端以保持同一会话。"""
+    session_id: str
+    user_id: str

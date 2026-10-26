@@ -9,4 +9,6 @@ fastapi>=0.95
 uvicorn[standard]>=0.21
 pydantic>=1.10
 prometheus-client>=0.16
+langfuse>=2.0   # LLM/请求级可观测性：按 user_id / session_id 追踪
+pyjwt>=2.0       # JWT 鉴权：从 token 解析 user_id / session_id
 joblib>=1.1  # 随 scikit-learn 自带
