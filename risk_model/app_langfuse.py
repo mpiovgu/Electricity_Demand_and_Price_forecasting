@@ -24,13 +24,16 @@ import pathlib
 import uuid
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from typing import Optional
+from typing import Optional, List
 from contextlib import asynccontextmanager
 import pandas as pd
 import jwt
+from pydantic import BaseModel, Field
 from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from prometheus_client import make_asgi_app
+from langgraph.checkpoint.memory import InMemorySaver
+from risk_model.agent import build_agent
 
 from langfuse import Langfuse
 from langfuse.decorators import langfuse_context, observe
@@ -258,6 +261,78 @@ def query_traces(
             for t in res.data
         ],
     }
+
+
+# ---- ReAct Agent（LangGraph create_react_agent）----
+# 进程级共享的 Agent 实例 + 共享内存检查点（多轮记忆）；首次调用时懒加载。
+_agent = None
+
+
+def _get_agent():
+    """懒加载 ReAct Agent；未配置 LLM 或模型未训练时返回 503。"""
+    global _agent
+    if _agent is None:
+        try:
+            _agent = build_agent(checkpointer=InMemorySaver())
+        except Exception as e:  # OPENAI_API_KEY 缺失 / 模型未训练等
+            raise HTTPException(status_code=503, detail=f"Agent 未就绪：{e}")
+    return _agent
+
+
+class AgentChatInput(BaseModel):
+    message: str = Field(..., description="用户自然语言问题")
+    thread_id: str = Field("default", description="会话线程 ID，用于多轮记忆")
+
+
+class AgentMessage(BaseModel):
+    role: str
+    content: str
+
+
+class AgentChatResponse(BaseModel):
+    thread_id: str
+    reply: str
+    messages: List[AgentMessage]
+
+
+@app.post("/agent/chat", response_model=AgentChatResponse,
+          dependencies=[Depends(verify_api_key)])
+@observe(name="agent_chat")
+def agent_chat(inp: AgentChatInput,
+               identity: dict = Depends(get_identity)):
+    """自然语言对话入口：ReAct Agent 会按需调用风控模型/漂移/健康度工具。"""
+    agent = _get_agent()
+    cfg = {"configurable": {"thread_id": inp.thread_id}}
+
+    langfuse_context.update_current_trace(
+        user_id=identity["user_id"],
+        session_id=identity["session_id"],
+        input=inp.message,
+        tags=[ENV], release=RELEASE,
+        metadata={"environment": ENV, "thread_id": inp.thread_id})
+
+    result = agent.invoke({"messages": [("user", inp.message)]}, config=cfg)
+    msgs = result["messages"]
+    reply = msgs[-1].content
+
+    # 抽取走过的工具调用，便于追踪 Agent 行为
+    tool_calls = []
+    for m in msgs:
+        if getattr(m, "tool_calls", None):
+            for tc in m.tool_calls:
+                tool_calls.append({"name": tc["name"], "args": tc["args"]})
+
+    trace_id = langfuse_context.get_current_trace_id()
+    langfuse.span(
+        trace_id=trace_id, name="react_agent_run",
+        input=inp.message, output=reply,
+        metadata={"tool_calls": tool_calls, "n_messages": len(msgs)})
+
+    return AgentChatResponse(
+        thread_id=inp.thread_id,
+        reply=reply,
+        messages=[AgentMessage(role=m.type, content=m.content) for m in msgs],
+    )
 
 
 if __name__ == "__main__":
